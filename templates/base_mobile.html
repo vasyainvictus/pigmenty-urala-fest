@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Пигменты Урала{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Russo+One&display=swap&subset=cyrillic" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.css">
+    <style>
+        :root {
+            --brand-green: #1a5a3a; --dark-bg: #111111; --card-bg: rgba(26, 26, 26, 0.75);
+            --border-color: rgba(255, 255, 255, 0.1); --text-color: #f0f0f0; --text-muted: #a0a0a0;
+            --bs-primary: var(--brand-green); --bs-primary-rgb: 26, 90, 58;
+        }
+        html, body { height: 100%; }
+        body {
+            font-family: 'Montserrat', sans-serif; color: var(--text-color); overflow-x: hidden;
+            background-color: var(--dark-bg);
+            display: flex; flex-direction: column; min-height: 100%;
+        }
+        .hero-image { width: 100%; height: auto; max-height: 40vh; object-fit: cover; display: block; border-radius: 0.75rem; }
+        main { flex: 1; }
+        .page-content { animation: slideUp 0.7s ease-out forwards; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        h1, h2, h3, h4, h5, h6 { font-family: 'Russo One', sans-serif; letter-spacing: 0.5px; font-weight: 400; }
+        .text-muted { color: var(--text-muted) !important; }
+        
+        .schedule-dates .nav-link { color: var(--text-muted); border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 0.5rem 1rem; text-align: center; transition: all 0.2s ease; }
+        .schedule-dates .nav-link.active { background-color: var(--brand-green); border-color: var(--brand-green); color: white !important; font-weight: 700; }
+        .schedule-table td { color: var(--text-color) !important; background: transparent !important; border-color: var(--border-color) !important; padding: 0.75rem; }
+        .schedule-table tr.table-success { --bs-table-bg-state: rgba(26, 90, 58, 0.3); color: var(--text-color) !important; }
+        .accordion-item { background-color: var(--card-bg) !important; border-color: var(--border-color) !important; color: var(--text-color) !important; }
+        .accordion-button { background-color: transparent !important; color: var(--text-color) !important; font-weight: 700; }
+        .accordion-button:not(.collapsed) { box-shadow: none !important; color: var(--brand-green) !important; }
+        .accordion-button::after { filter: brightness(0) invert(1); }
+        .winner-card { border-radius: 0.375rem; padding: 1rem; background: linear-gradient(45deg, rgba(255,215,0,0.1), rgba(255,235,153,0.2)); animation: glow 2s ease-in-out infinite alternate; }
+        @keyframes glow { from { box-shadow: 0 0 5px rgba(255,215,0,0.2); } to { box-shadow: 0 0 20px rgba(255,215,0,0.6); } }
+        .fab-group { position: fixed; top: 1rem; right: 1rem; z-index: 10; display: flex; flex-direction: column; gap: 0.5rem; }
+        footer { padding: 2rem 0; text-align: center; color: var(--text-muted); }
+        .footer-brand { font-family: 'Russo One', sans-serif; letter-spacing: 1px; font-size: 1.2rem; color: var(--text-color); }
+        .social-links a { color: var(--text-muted); transition: color 0.2s ease; }
+        .social-links a:hover { color: var(--brand-green); }
+        .list-group-item-action { color: var(--text-color); }
+        .btn-primary {
+        background-color: var(--brand-green);
+        border-color: var(--brand-green);
+        transition: all 0.3s ease;
+        }
+        .btn-primary:hover, .btn-primary:focus {
+            background-color: #13402a;
+            border-color: #13402a;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+        
+        /* Стиль для кнопки в модальном окне */
+        .success-modal-btn {
+            background-color: var(--brand-green);
+            border-color: var(--brand-green);
+            padding: 0.5rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .success-modal-btn:hover {
+            background-color: #13402a;
+            border-color: #13402a;
+            transform: scale(1.05);
+        }
+
+    </style>
+    {# --- ДОБАВЛЕН БЛОК ДЛЯ ЛОКАЛЬНЫХ СТИЛЕЙ --- #}
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    <div class="fab-group">
+        {% block fab_buttons %}{% endblock %}
+    </div>
+    <main class="container-fluid py-4">
+        <div class="mb-4"><img src="{{ url_for('static', filename='images/david_bg.jpg') }}" alt="Пигменты Урала" class="hero-image"></div>
+        <div class="page-content">{% block content %}{% endblock %}</div>
+    </main>
+    <footer>
+        <div class="social-links mb-2">
+            <a href="https://www.instagram.com/pigment_ural?igsh=MWVrZGVkYnQ5Z3ZhMA==" target="_blank" class="mx-2 fs-4"><i class="bi bi-instagram"></i></a>
+            <a href="https://vk.com/tattoo_fest_2025?ysclid=mdzx4xkjm3850043069" target="_blank" class="mx-2 fs-4"><i class="fa-brands fa-vk"></i></a>
+        </div>
+        <div class="footer-brand">Пигменты Урала</div>
+        <div class="small">Тату Фестиваль</div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>AOS.init({ once: true, duration: 600 });</script>
+    
+    {# --- ДОБАВЛЕН БЛОК ДЛЯ ЛОКАЛЬНЫХ СКРИПТОВ --- #}
+    {% block scripts %}{% endblock %}
+</body>
+</html>

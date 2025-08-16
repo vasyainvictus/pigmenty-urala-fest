@@ -1,0 +1,58 @@
+<!-- templates/admin/_edit_nomination_form.html -->
+<form method="POST" action="{{ url_for('admin.edit_nomination_template', template_id=template.id) }}">
+    <div class="modal-header">
+        <h5 class="modal-title">Редактирование шаблона</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+    </div>
+    <div class="modal-body">
+        <!-- Место для флеш-сообщений в случае ошибки -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="mb-3">
+            <label for="name" class="form-label">Название номинации:</label>
+            <input type="text" id="name" name="name" required value="{{ template.name }}" class="form-control">
+        </div>
+        <div class="mb-3">
+            <label for="participant_type" class="form-label">Тип участников по умолчанию:</label>
+            <select id="participant_type" name="participant_type" required class="form-select">
+                <option value="both" {% if template.participant_type == 'both' %}selected{% endif %}>Про & Юниор (Все)</option>
+                <option value="pro" {% if template.participant_type == 'pro' %}selected{% endif %}>Только Про</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="description" class="form-label">Описание:</label>
+            <textarea id="description" name="description" rows="2" class="form-control">{{ template.description or '' }}</textarea>
+        </div>
+        
+        <div class="mb-3">
+            <label class="form-label">Критерии оценки:</label>
+            {% if not all_criteria %}
+                <p class="text-danger">Критерии не созданы. <a href="{{ url_for('admin.manage_criteria') }}">Создать критерии</a>.</p>
+            {% else %}
+                {% set selected_ids = template.criteria | map(attribute='id') | list %}
+                <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                    {% for criterion in all_criteria %}
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="criteria" value="{{ criterion.id }}" id="crit-modal-{{ criterion.id }}" {% if criterion.id in selected_ids %}checked{% endif %}>
+                        <label class="form-check-label" for="crit-modal-{{ criterion.id }}">
+                            {{ criterion.name }}
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+    </div>
+</form>

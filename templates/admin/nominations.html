@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{# --- 1. ПЕРЕИМЕНОВЫВАЕМ СТРАНИЦУ --- #}
+{% block title %}Управление Номинациями{% endblock %}
+
+{% block content %}
+    {# --- 2. УБИРАЕМ ВНЕШНЮЮ РАМКУ --- #}
+    {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}<div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endfor %}{% endif %}{% endwith %}
+            
+    <div class="accordion mb-4" id="addTemplateAccordion">
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingTemplate"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTemplate"><i class="bi bi-file-earmark-plus-fill me-2"></i> Создать новую номинацию</button></h2>
+            <div id="collapseTemplate" class="accordion-collapse collapse" data-bs-parent="#addTemplateAccordion">
+                <div class="accordion-body bg-light">
+                    <form method="POST">
+                        <div class="mb-3"><label for="name" class="form-label">Название номинации:</label><input type="text" id="name" name="name" required class="form-control"></div>
+                        <div class="mb-3"><label for="participant_type" class="form-label">Тип участников:</label><select id="participant_type" name="participant_type" required class="form-select"><option value="both" selected>Про и Юниор</option><option value="pro">Только Про</option><option value="junior">Только Юниор</option></select></div>
+                        <div class="mb-3"><label for="description" class="form-label">Описание:</label><textarea id="description" name="description" rows="2" class="form-control"></textarea></div>
+                        <div class="mb-3">
+                            <label class="form-label">Критерии оценки:</label>
+                            {% if not all_criteria %}<p class="text-danger">Критерии не созданы. <a href="{{ url_for('admin.manage_criteria') }}">Создать критерии</a>.</p>{% else %}<div class="border rounded p-3 bg-white" style="max-height: 200px; overflow-y: auto;">{% for criterion in all_criteria %}<div class="form-check"><input class="form-check-input" type="checkbox" name="criteria" value="{{ criterion.id }}" id="crit-{{ criterion.id }}"><label class="form-check-label" for="crit-{{ criterion.id }}">{{ criterion.name }}</label></div>{% endfor %}</div>{% endif %}
+                        </div>
+                        <div class="text-end"><button type="submit" class="btn btn-primary">Создать номинацию</button></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-3"><h4 class="mb-0">Список номинаций</h4><span class="badge bg-secondary rounded-pill">{{ templates|length }} всего</span></div>
+    
+    <div class="list-group">
+        {% for template in templates %}
+        <div class="list-group-item px-3 py-3">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <h6 class="mb-1">{{ template.name }}</h6>
+                    <span class="badge bg-info-subtle text-info-emphasis rounded-pill">{{ CATEGORY_MAP.get(template.participant_type, template.participant_type) }}</span>
+                </div>
+                <div class="d-flex gap-2"><a href="{{ url_for('admin.edit_nomination_template', template_id=template.id) }}" class="btn btn-sm btn-outline-secondary" title="Редактировать" data-bs-toggle="modal" data-bs-target="#modal-container"><i class="bi bi-pencil-fill"></i></a><button type="button" class="btn btn-sm btn-outline-danger" title="Удалить" data-bs-toggle="modal" data-bs-target="#delete-confirm-modal" data-item-name="{{ template.name }}" data-delete-url="{{ url_for('admin.delete_nomination_template', template_id=template.id) }}"><i class="bi bi-trash-fill"></i></button></div>
+            </div>
+            {% if template.description %}<p class="small text-muted mb-2">{{ template.description }}</p>{% endif %}
+            
+            {# --- 3. НОВОЕ ОТОБРАЖЕНИЕ КРИТЕРИЕВ --- #}
+            <div>
+                {% if template.criteria %}
+                    {# Создаем строку с названиями критериев для всплывающей подсказки #}
+                    {% set criteria_names = template.criteria|map(attribute='name')|join(', ') %}
+                    <span class="badge text-bg-light border" 
+                          data-bs-toggle="tooltip" 
+                          data-bs-placement="top" 
+                          title="{{ criteria_names }}">
+                        <i class="bi bi-list-check me-1"></i> {{ template.criteria|length }} критериев
+                    </span>
+                {% else %}
+                    <span class="badge bg-light text-dark border">Критерии не заданы</span>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="list-group-item text-center text-muted p-4">Номинации еще не созданы.</div>
+        {% endfor %}
+    </div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // --- 4. ИНИЦИАЛИЗАЦИЯ TOOLTIPS ---
+    // Находим все элементы с атрибутом data-bs-toggle="tooltip" и активируем их
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+
+    // --- Инициализация Select2 ---
+    const accordionEl = document.getElementById('collapseTemplate');
+    if (accordionEl) {
+        accordionEl.addEventListener('shown.bs.collapse', function () {
+            const selectEl = document.getElementById('participant_type');
+            if (selectEl && !$(selectEl).data('select2')) {
+                $(selectEl).select2({
+                    theme: 'bootstrap-5',
+                    dropdownParent: $(accordionEl).find('.accordion-body'),
+                    minimumResultsForSearch: Infinity 
+                });
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

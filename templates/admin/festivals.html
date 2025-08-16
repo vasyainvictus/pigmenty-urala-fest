@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Управление фестивалями{% endblock %}
+
+{% block content %}
+    {# --- ИЗМЕНЕНИЕ: Все лишние контейнеры и отступы убраны. --- #}
+    {# --- Базовый шаблон теперь сам добавляет белый фон и внутренние отступы. --- #}
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="accordion mb-4" id="addFestivalAccordion">
+        <div class="accordion-item border rounded"> {# Добавим рамку для аккуратности #}
+            <h2 class="accordion-header" id="headingFestival">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFestival">
+                    <i class="bi bi-calendar-plus-fill me-2"></i> Создать новый фестиваль
+                </button>
+            </h2>
+            <div id="collapseFestival" class="accordion-collapse collapse" data-bs-parent="#addFestivalAccordion">
+                <div class="accordion-body bg-light">
+                    {# Форма остается без изменений #}
+                    <form method="POST" action="{{ url_for('admin.manage_festivals') }}">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label for="name" class="form-label">Название фестиваля:</label>
+                                <input type="text" id="name" name="name" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="start_date" class="form-label">Дата начала:</label>
+                                <input type="date" id="start_date" name="start_date" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="end_date" class="form-label">Дата окончания:</label>
+                                <input type="date" id="end_date" name="end_date" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="mt-3 text-end">
+                            <button type="submit" class="btn btn-primary">Создать</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">Список фестивалей</h4>
+        <span class="badge bg-secondary rounded-pill">{{ festivals|length }} всего</span>
+    </div>
+
+    {% if festivals %}
+    <div class="list-group">
+        {% for festival in festivals %}
+            {# Этот блок уже был хорош. Он отлично вписывается в новый дизайн. #}
+            <div class="list-group-item p-0 border rounded shadow-sm mb-3">
+                <div class="d-flex flex-wrap align-items-center w-100 p-3">
+                    <div class="me-auto mb-2 mb-md-0">
+                        <span class="fw-bold fs-5">{{ festival.name }}</span>
+                        <small class="d-block text-muted">{{ festival.start_date.strftime('%d.%m.%Y') }} - {{ festival.end_date.strftime('%d.%m.%Y') }}</small>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('admin.edit_festival', festival_id=festival.id) }}" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modal-container" title="Редактировать">
+                            <i class="bi bi-pencil-fill"></i>
+                        </a>
+                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#delete-confirm-modal" data-item-name="{{ festival.name }}" data-delete-url="{{ url_for('admin.delete_festival', festival_id=festival.id) }}" title="Удалить">
+                            <i class="bi bi-trash-fill"></i>
+                        </button>
+                    </div>
+                </div>
+
+                {% if festival.days %}
+                <div class="list-group list-group-flush border-top">
+                    {% for day in festival.days|sort(attribute='day_order') %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center ps-4 pe-3 py-2">
+                        <div>
+                            <span class="fw-bold">День {{ day.day_order }}</span>
+                            <small class="text-muted d-block d-sm-inline ms-sm-2">{{ day.date.strftime('%d-%m-%Y') }}</small>
+                        </div>
+                        <a href="{{ url_for('admin.manage_day_schedule', day_id=day.id) }}" class="btn btn-sm btn-outline-primary" title="Расписание">
+                           <span class="d-none d-sm-inline">Расписание</span> <i class="bi bi-arrow-right-short"></i>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+    {% else %}
+        <div class="text-center p-5 bg-light rounded">
+            <p class="mb-0 text-muted">Фестивали еще не созданы.</p>
+        </div>
+    {% endif %}
+
+{% endblock %}

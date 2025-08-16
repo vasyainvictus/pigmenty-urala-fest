@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Результаты и Назначение Победителей{% endblock %}
+
+{% block content %}
+    {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}<div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endfor %}{% endif %}{% endwith %}
+
+    {% if not results_by_day %}
+        <div class="text-center p-5 bg-light rounded"><h4 class="mb-1">Нет данных для отображения</h4><p class="text-muted">Возможно, еще не создано ни одного конкурса в расписании.</p></div>
+    {% else %}
+        <ul class="nav nav-tabs nav-fill mb-4" id="daysTab" role="tablist">
+            {% for day, _ in results_by_day.items()|sort(attribute='0.date') %}
+            <li class="nav-item" role="presentation"><button class="nav-link {% if loop.first %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#day-{{ day.id }}-pane" type="button">День {{ day.day_order }} ({{ day.date.strftime('%d.%m') }})</button></li>
+            {% endfor %}
+        </ul>
+
+        <div class="tab-content" id="daysTabContent">
+            {% for day, contests in results_by_day.items()|sort(attribute='0.date') %}
+            <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="day-{{ day.id }}-pane" role="tabpanel">
+                <div class="input-group mb-4"><span class="input-group-text"><i class="bi bi-search"></i></span><input type="text" class="form-control result-search-input" placeholder="Поиск участника по нику или коду в этом дне..."></div>
+                <div class="row g-4">
+                    {% for result in contests %}
+                        <div class="col-12 col-lg-6">
+                            <div class="card shadow-sm h-100">
+                                <div class="card-header d-flex justify-content-between"><h6 class="mb-0">{{ result.contest.nomination_template.name }}</h6><span class="badge bg-secondary rounded-pill">{{ CATEGORY_MAP.get(result.contest.category) }}</span></div>
+                                <div class="card-body">
+                                    {% set pro_participants = result.pro_participants_data %}
+                                    {% set junior_participants = result.junior_participants_data %}
+                                    
+                                    {# --- НАЧАЛО ИСПРАВЛЕНИЙ --- #}
+                                    <ul class="nav nav-pills nav-fill mb-3">
+                                        <li class="nav-item">
+                                            {# Кнопка "Профи" всегда видна. Она становится активной, если юниоров нет, и неактивной, если профи нет #}
+                                            <button class="nav-link {% if not junior_participants or pro_participants %}active{% endif %} {% if not pro_participants %}disabled{% endif %}" data-bs-toggle="tab" data-bs-target="#pro-pane-{{ result.contest.id }}">Профи</button>
+                                        </li>
+                                        <li class="nav-item">
+                                            {# Кнопка "Юниоры" всегда видна. Становится активной, если профи нет, и неактивной, если юниоров нет #}
+                                            <button class="nav-link {% if not pro_participants %}active{% endif %} {% if not junior_participants %}disabled{% endif %}" data-bs-toggle="tab" data-bs-target="#junior-pane-{{ result.contest.id }}">Юниоры</button>
+                                        </li>
+                                    </ul>
+                                    <div class="tab-content">
+                                        <div class="tab-pane fade {% if not junior_participants or pro_participants %}show active{% endif %}" id="pro-pane-{{ result.contest.id }}">
+                                            {# Проверка на наличие участников перенесена внутрь #}
+                                            {% if pro_participants %}
+                                                {% set participants = pro_participants %}
+                                                {% set contest = result.contest %}
+                                                {% set exp_category = 'pro' %}
+                                                {% include 'admin/_results_participant_list.html' %}
+                                            {% else %}
+                                                <p class="text-center text-muted p-3">В этом конкурсе нет участников в категории "Профи".</p>
+                                            {% endif %}
+                                        </div>
+                                        <div class="tab-pane fade {% if not pro_participants %}show active{% endif %}" id="junior-pane-{{ result.contest.id }}">
+                                            {% if junior_participants %}
+                                                {% set participants = junior_participants %}
+                                                {% set contest = result.contest %}
+                                                {% set exp_category = 'junior' %}
+                                                {% include 'admin/_results_participant_list.html' %}
+                                            {% else %}
+                                                <p class="text-center text-muted p-3">В этом конкурсе нет участников в категории "Юниоры".</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {# --- КОНЕЦ ИСПРАВЛЕНИЙ --- #}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.result-search-input').forEach(input => {
+        input.addEventListener('input', function() {
+            const searchQuery = this.value.toLowerCase().trim();
+            const activeTabPane = this.closest('.tab-pane');
+            activeTabPane.querySelectorAll('.participant-item').forEach(item => {
+                const itemText = item.dataset.searchText;
+                const matches = itemText.includes(searchQuery);
+                item.style.display = matches ? '' : 'none';
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

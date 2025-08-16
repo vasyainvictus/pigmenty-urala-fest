@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Расписание: {{ day.date.strftime('%d.%m.%Y') }}{% endblock %}
+
+{% block content %}
+    <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-4">
+        <h3 class="mb-0">Расписание на {{ day.date.strftime('%d %B %Y') }}</h3>
+        <a href="{{ url_for('admin.manage_festivals') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Назад к фестивалям</a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}<div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endfor %}{% endif %}{% endwith %}
+
+    {# Форма создания в аккордеоне #}
+    <div class="accordion mb-4" id="addSlotAccordion">
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingSlot"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSlot"><i class="bi bi-clock-fill me-2"></i> Добавить новый слот</button></h2>
+            <div id="collapseSlot" class="accordion-collapse collapse" data-bs-parent="#addSlotAccordion">
+                <div class="accordion-body bg-light">
+                    <form method="post" id="addSlotForm">
+                        <div class="row g-3 mb-3"><div class="col-6 col-md-2"><label class="form-label">Начало</label><input type="time" name="start_time" required class="form-control"></div><div class="col-6 col-md-2"><label class="form-label">Конец</label><input type="time" name="end_time" required class="form-control"></div><div class="col-12 col-md-3"><label class="form-label">Тип слота</label><select id="slot_type" name="type" required class="form-select"><option value="judging" selected>Конкурс</option><option value="award">Награждение</option><option value="event">Событие</option></select></div></div>
+                        <div data-fields-for="judging"><div class="row g-3"><div class="col-12 col-md-5"><label class="form-label">Шаблон</label><select name="nomination_template_id" class="form-select" data-required-if-visible="true">{% for t in nomination_templates %}<option value="{{ t.id }}">{{ t.name }}</option>{% endfor %}</select></div><div class="col-sm-6 col-md-3"><label class="form-label">Категория</label><select name="category" class="form-select" data-required-if-visible="true"><option value="fresh">Битва</option><option value="healed">Зажившая</option></select></div><div class="col-sm-6 col-md-2"><label class="form-label">Зона</label><select name="zone" class="form-select">{% for z in ZONES %}<option value="{{ z }}">{{ z }}</option>{% endfor %}</select></div></div></div>
+                        <div data-fields-for="award" style="display: none;"><div class="row g-3"><div class="col-sm-6 col-md-3"><label class="form-label">Категория</label><select name="category" class="form-select" data-required-if-visible="true"><option value="fresh">Битва</option><option value="healed">Зажившая</option></select></div><div class="col-sm-6 col-md-2"><label class="form-label">Зона</label><select name="zone" class="form-select">{% for z in ZONES %}<option value="{{ z }}">{{ z }}</option>{% endfor %}</select></div></div></div>
+                        <div data-fields-for="event" style="display: none;"><label class="form-label">Название</label><input type="text" name="event_title" class="form-control" data-required-if-visible="true"></div>
+                        <div class="text-end mt-3"><button type="submit" class="btn btn-primary">Добавить слот</button></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h4 class="mb-3">Текущее расписание</h4>
+    
+    {% if not grid_data and not mobile_slots %}
+        <p class="text-center text-muted p-4">Расписание для этого дня еще не составлено.</p>
+    {% else %}
+        
+        <div class="table-responsive d-none d-lg-block">
+            <table class="table table-bordered text-center" style="table-layout: fixed;">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 120px;">Время</th>
+                        {% for zone in all_zones %}<th>Зона {{ zone }}</th>{% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {# --- НАЧАЛО ИСПРАВЛЕНИЙ --- #}
+                    {% for time_tuple, zones in grid_data.items()|sort %}
+                    <tr>
+                        <td>
+                            <strong>{{ time_tuple[0] }}</strong>
+                            <div class="text-muted small">{{ time_tuple[1] }}</div>
+                        </td>
+                        {% for zone_name in all_zones %}
+                        <td class="p-2" style="vertical-align: top;">
+                            {% for slot in zones.get(zone_name, []) %}
+                                <div class="card card-body text-start small shadow-sm mb-2">
+                                    <strong>{{ slot.nomination_template.name if slot.type == 'judging' else (slot.event_title or 'Награждение') }}</strong>
+                                    <small class="text-muted">{{ CATEGORY_MAP.get(slot.category, '') }}</small>
+                                    <hr class="my-2">
+                                    <div class="d-flex justify-content-end gap-2">
+                                        {% if slot.type == 'judging' %}<a href="{{ url_for('admin.manage_slot_participants', slot_id=slot.id) }}" class="btn btn-sm btn-outline-primary" title="Участники ({{ slot.participants|length }})" data-bs-toggle="modal" data-bs-target="#modal-container"><i class="bi bi-people-fill"></i></a><a href="{{ url_for('admin.manage_slot_judges', slot_id=slot.id) }}" class="btn btn-sm btn-outline-info" title="Судьи ({{ slot.judge_assignments|length }})" data-bs-toggle="modal" data-bs-target="#modal-container"><i class="bi bi-clipboard-check-fill"></i></a>{% endif %}
+                                        <a href="{{ url_for('admin.edit_slot', slot_id=slot.id) }}" class="btn btn-sm btn-outline-secondary" title="Настройки" data-bs-toggle="modal" data-bs-target="#modal-container"><i class="bi bi-gear-fill"></i></a>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" title="Удалить" data-bs-toggle="modal" data-bs-target="#delete-confirm-modal" data-item-name="Слот ({{ slot.start_time.strftime('%H:%M') }})" data-delete-url="{{ url_for('admin.delete_slot', slot_id=slot.id) }}"><i class="bi bi-trash-fill"></i></button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                     {# --- КОНЕЦ ИСПРАВЛЕНИЙ --- #}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="list-group d-lg-none">
+            {% for time, slots_in_time in mobile_slots %}
+                {% for slot in slots_in_time %}
+                <div class="list-group-item px-2 py-3">
+                    <div class="row g-2 align-items-center">
+                        <div class="col-3 col-md-2 text-start"><strong class="d-block">{{ slot.start_time.strftime('%H:%M') }}</strong><small class="text-muted d-block">{{ slot.end_time.strftime('%H:%M') }}</small></div>
+                        <div class="col-9 col-md-6"><strong>{{ slot.nomination_template.name if slot.type == 'judging' else (slot.event_title or 'Награждение') }}</strong><div class="small text-muted">{% if slot.type in ['judging', 'award'] %}{{ CATEGORY_MAP.get(slot.category, '') }} | Зона: {{ slot.zone or '-' }}{% else %}Событие{% endif %}</div></div>
+                        <div class="col-12 col-md-4"><div class="d-flex align-items-center justify-content-end flex-wrap gap-2 mt-2 mt-md-0">{% if slot.type == 'judging' %}<div class="d-flex gap-2 me-auto"><span class="badge text-bg-light border" title="Участники"><i class="bi bi-people-fill me-1"></i>{{ slot.participants|length }}</span><span class="badge text-bg-light border" title="Судьи"><i class="bi bi-clipboard-check-fill me-1"></i>{{ slot.judge_assignments|length }}</span></div><div class="vr d-none d-sm-block mx-1"></div><a href="{{ url_for('admin.manage_slot_participants', slot_id=slot.id) }}" class="btn btn-sm btn-outline-primary" title="Участники" data-bs-toggle="modal" data-bs-target="#modal-container"><i class="bi bi-people-fill"></i></a><a href="{{ url_for('admin.manage_slot_judges', slot_id=slot.id) }}" class="btn btn-sm btn-outline-info" title="Судьи" data-bs-toggle="modal" data-bs-target="#modal-container"><i class="bi bi-clipboard-check-fill"></i></a>{% endif %}<a href="{{ url_for('admin.edit_slot', slot_id=slot.id) }}" class="btn btn-sm btn-outline-secondary" title="Настройки" data-bs-toggle="modal" data-bs-target="#modal-container"><i class="bi bi-gear-fill"></i></a><button type="button" class="btn btn-sm btn-outline-danger" title="Удалить" data-bs-toggle="modal" data-bs-target="#delete-confirm-modal" data-item-name="Слот ({{ slot.start_time.strftime('%H:%M') }})" data-delete-url="{{ url_for('admin.delete_slot', slot_id=slot.id) }}"><i class="bi bi-trash-fill"></i></button></div></div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% endfor %}
+        </div>
+        
+    {% endif %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const accordionBody = $('#collapseSlot .accordion-body');
+        $('#collapseSlot').on('shown.bs.collapse', function () {
+            if (!$(this).data('select2-initialized')) {
+                const selects = $(this).find('select');
+                selects.each(function() {
+                    const select = $(this);
+                    const hasSearch = select.find('option').length > 7;
+                    select.select2({
+                        theme: 'bootstrap-5',
+                        dropdownParent: accordionBody,
+                        placeholder: select.find('option[disabled]').text() || '-- Выберите --',
+                        minimumResultsForSearch: hasSearch ? 0 : Infinity
+                    });
+                });
+                $(this).data('select2-initialized', true);
+            }
+        });
+        const typeSelect = document.getElementById('slot_type');
+        const dynamicFieldSets = document.querySelectorAll('[data-fields-for]');
+        function toggleFields() {
+            const selectedType = typeSelect.value;
+            dynamicFieldSets.forEach(fieldSet => {
+                const inputs = fieldSet.querySelectorAll('input, select');
+                const fieldsFor = fieldSet.getAttribute('data-fields-for');
+                if (fieldsFor === selectedType) {
+                    fieldSet.style.display = 'block';
+                    inputs.forEach(input => {
+                        input.disabled = false;
+                        if (input.getAttribute('data-required-if-visible') === 'true') {
+                            input.required = true;
+                        }
+                    });
+                } else {
+                    fieldSet.style.display = 'none';
+                    inputs.forEach(input => {
+                        input.disabled = true;
+                        if (input.getAttribute('data-required-if-visible') === 'true') {
+                            input.required = false;
+                        }
+                    });
+                }
+            });
+            if ($('#collapseSlot').data('select2-initialized')) {
+                $('#addSlotForm select').trigger('change.select2');
+            }
+        }
+        typeSelect.addEventListener('change', toggleFields);
+        toggleFields();
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Управление пользователями{% endblock %}
+
+{% block content %}
+    {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}<div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endfor %}{% endif %}{% endwith %}
+
+    <div class="accordion mb-4" id="addUserAccordion">
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingOne"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne"><i class="bi bi-person-plus-fill me-2"></i> Добавить нового пользователя</button></h2>
+            <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#addUserAccordion">
+                <div class="accordion-body bg-light">
+                    <form method="POST" action="{{ url_for('admin.manage_users') }}" class="row g-3">
+                        <div class="col-md-6"><label for="code" class="form-label">Код</label><input type="text" id="code" name="code" placeholder="Напр. 100002" class="form-control" required></div>
+                        <div class="col-md-6"><label for="nickname" class="form-label">Никнейм</label><input type="text" id="nickname" name="nickname" placeholder="Необязательно" class="form-control"></div>
+                        <div class="col-md-6"><label for="role" class="form-label">Роль</label><select id="role" name="role" class="form-select" required><option value="" disabled selected>Выберите роль...</option><option value="participant">Участник</option><option value="judge">Судья</option><option value="admin">Администратор</option></select></div>
+                        <div class="col-md-6"><label for="experience_category" class="form-label">Категория опыта</label><select id="experience_category" name="experience_category" class="form-select"><option value="">- нет -</option><option value="junior">Юниор</option><option value="pro">Про</option></select></div>
+                        <div class="col-12 text-end"><button type="submit" class="btn btn-primary">Создать</button></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-3">
+        <div class="btn-group" role="group" id="role-filter">
+            <button type="button" class="btn btn-sm btn-outline-secondary active" data-role="all">Все</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-role="participant">Участники</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-role="judge">Судьи</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-role="admin">Админы</button>
+        </div>
+        <div class="input-group input-group-sm" style="max-width: 250px;">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" id="user-search-input" placeholder="Поиск по нику или коду...">
+        </div>
+    </div>
+
+    {% if not users %}
+        <p class="text-center text-muted p-4">Пользователи еще не созданы.</p>
+    {% else %}
+        <div class="list-group" id="user-list">
+            {% for user in users %}
+                <div class="list-group-item px-3 py-2 user-card" data-role="{{ user.role }}" data-search-text="{{ (user.nickname or '') | lower }} {{ user.code | lower }}">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div><h6 class="mb-0">{{ user.nickname or 'Без никнейма' }} {% if user.role == 'admin' %}<i class="bi bi-shield-lock-fill text-danger ms-2" title="Администратор"></i>{% elif user.role == 'judge' %}<i class="bi bi-clipboard-check-fill text-info ms-2" title="Судья"></i>{% endif %}</h6><small class="text-muted">{{ user.code }} {% if user.experience_category %}<span class="mx-1">|</span> {{ CATEGORY_MAP.get(user.experience_category, '-') }}{% endif %}</small></div>
+                        <div class="d-flex gap-2"><a href="{{ url_for('admin.edit_user', user_id=user.id) }}" class="btn btn-sm btn-outline-secondary" title="Редактировать" data-bs-toggle="modal" data-bs-target="#modal-container"><i class="bi bi-pencil-fill"></i></a>{% if current_user.id != user.id and user.id != 1 %}<button type="button" class="btn btn-sm btn-outline-danger" title="Удалить" data-bs-toggle="modal" data-bs-target="#delete-confirm-modal" data-item-name="{{ user.nickname or user.code }}" data-delete-url="{{ url_for('admin.delete_user', user_id=user.id) }}"><i class="bi bi-trash-fill"></i></button>{% endif %}</div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        <p class="text-center text-muted mt-3 d-none" id="no-results-message">Пользователи не найдены.</p>
+    {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Инициализация Select2
+    const accordionElement = document.getElementById('collapseOne');
+    if (accordionElement) {
+        accordionElement.addEventListener('shown.bs.collapse', function () {
+            if (typeof $ !== 'undefined' && $.fn.select2) {
+                const selects = $(this).find('select');
+                if (selects.length > 0 && !$(this).data('select2-initialized')) {
+                    selects.each(function() { $(this).select2({ theme: 'bootstrap-5', dropdownParent: $(this).closest('.accordion-body'), minimumResultsForSearch: Infinity }); });
+                    $(this).data('select2-initialized', true);
+                }
+            }
+        });
+    }
+
+    // Логика фильтрации и поиска
+    const roleFilter = document.getElementById('role-filter');
+    const searchInput = document.getElementById('user-search-input');
+    const userList = document.getElementById('user-list');
+    const noResultsMessage = document.getElementById('no-results-message');
+    
+    if (roleFilter && searchInput && userList && noResultsMessage) {
+        const userCards = userList.querySelectorAll('.user-card');
+        let currentRoleFilter = 'all';
+        let currentSearchQuery = '';
+
+        const filterAndSearch = () => {
+            let visibleCount = 0;
+            userCards.forEach(card => {
+                const roleMatch = currentRoleFilter === 'all' || card.dataset.role === currentRoleFilter;
+                const searchMatch = card.dataset.searchText.includes(currentSearchQuery);
+
+                if (roleMatch && searchMatch) {
+                    card.style.display = 'block';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            
+            // --- ИСПРАВЛЕНИЕ ЗДЕСЬ ---
+            // Более простая и надежная логика:
+            if (visibleCount === 0) {
+                noResultsMessage.classList.remove('d-none'); // Показываем сообщение
+            } else {
+                noResultsMessage.classList.add('d-none'); // Скрываем сообщение
+            }
+        };
+
+        roleFilter.addEventListener('click', (event) => {
+            const button = event.target.closest('button');
+            if (!button) return;
+            roleFilter.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            currentRoleFilter = button.dataset.role;
+            filterAndSearch();
+        });
+
+        searchInput.addEventListener('input', () => {
+            currentSearchQuery = searchInput.value.toLowerCase().trim();
+            filterAndSearch();
+        });
+    }
+});
+</script>
+{% endblock %}

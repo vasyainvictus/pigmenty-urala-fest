@@ -1,0 +1,138 @@
+{% extends "base_mobile.html" %}
+{% block title %}Мои оценки{% endblock %}
+
+{% block fab_buttons %}{% endblock %}
+
+{# --- ИЗМЕНЕНИЕ 1: Добавляем блок стилей для этой страницы --- #}
+{% block styles %}
+<style>
+    /* Убираем синий контур у аккордеона при фокусе, заменяя его на фирменный зеленый */
+    .accordion-button:focus {
+        box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.3) !important;
+        outline: none;
+    }
+
+    /* Новый, более стильный вид для карточки с оценками судьи */
+    .judge-score-card {
+        background-color: rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--border-color);
+        padding: 1rem;
+        border-radius: 0.5rem;
+        height: 100%;
+    }
+
+    .judge-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+
+    /* Стили для имени судьи с иконкой молотка */
+    .judge-header .judge-name {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem; /* Расстояние между иконкой и именем */
+        color: var(--text-muted);
+        font-weight: 700;
+        font-size: 1rem;
+    }
+    .judge-header .judge-name .fa-gavel {
+        font-size: 1.2rem;
+        color: var(--text-color);
+    }
+    
+    /* Делаем итоговый балл более заметным */
+    .judge-header .judge-avg-score {
+        font-family: 'Russo One', sans-serif;
+        font-size: 1.75rem;
+        color: var(--text-color);
+    }
+
+    /* Более аккуратный список критериев */
+    .criteria-list {
+        list-style: none;
+        padding: 0.75rem 0 0 0;
+        margin: 0;
+        font-size: 0.9rem;
+        border-top: 1px solid var(--border-color);
+    }
+    .criteria-list li {
+        display: flex;
+        justify-content: space-between;
+        padding-top: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-start mb-4 welcome-block">
+        <div>
+            <h1 class="display-5">Ваши результаты</h1>
+            <p class="text-white-50">Здесь вы можете посмотреть детальные оценки по каждой заявке.</p>
+        </div>
+        <a href="{{ url_for('main.dashboard') }}" class="btn btn-dark btn-sm ms-3" title="Назад">
+            <i class="bi bi-arrow-left fs-5"></i>
+        </a>
+    </div>
+
+    {% if not results %}
+        <div class="text-center p-4 rounded" style="background-color: var(--card-bg);">
+            <p class="mb-0 text-white-50">Оценки по вашим участиям пока недоступны.</p>
+        </div>
+    {% else %}
+        <div class="accordion accordion-flush" id="scoresAccordion">
+            {% for res in results %}
+            <div class="accordion-item bg-transparent border-0 mb-3">
+                <h2 class="accordion-header" id="heading-{{ res.participation_id }}">
+                    <button class="accordion-button collapsed p-3 rounded" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ res.participation_id }}">
+                        <div class="d-flex justify-content-between align-items-center w-100">
+                            <div class="text-start me-3">
+                                <h6 class="mb-1">{{ res.nomination }}</h6>
+                                <small class="text-muted">{{ res.date.strftime('%d.%m.%Y') }} | {{ CATEGORY_MAP.get(res.category, '') }}</small>
+                            </div>
+                            <div class="text-end">
+                                {% if res.is_winner %}
+                                    <span class="badge bg-warning text-dark rounded-pill">
+                                        <i class="bi bi-star-fill me-1"></i> Победитель!
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </button>
+                </h2>
+                <div id="collapse-{{ res.participation_id }}" class="accordion-collapse collapse" data-bs-parent="#scoresAccordion">
+                    <div class="accordion-body">
+                        <div class="row g-3 {% if res.is_winner %}winner-card{% endif %}">
+                            {% if res.judge_scores %}
+                                {% for judge_data in res.judge_scores.values() %}
+                                <div class="col-12 col-md-6">
+                                    <!-- --- ИЗМЕНЕНИЕ 2: Применяем новые стили к карточке судьи --- -->
+                                    <div class="judge-score-card">
+                                        <div class="judge-header">
+                                            <div class="judge-name">
+                                                <i class="fa-solid fa-gavel"></i> <!-- Иконка молотка -->
+                                                <span>{{ judge_data.judge.nickname or judge_data.judge.code }}</span>
+                                            </div>
+                                            <div class="judge-avg-score">{{ judge_data.avg }}</div>
+                                        </div>
+                                        <ul class="criteria-list">
+                                            {% for crit, score in judge_data.criteria.items() %}
+                                                <li><span>{{ crit }}:</span><span class="fw-bold">{{ score }}</span></li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="col-12"><p class="text-muted text-center m-0">Детальные оценки еще не выставлены.</p></div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endblock %}

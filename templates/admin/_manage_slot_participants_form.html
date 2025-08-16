@@ -1,0 +1,75 @@
+<!-- templates/admin/_manage_slot_participants_form.html -->
+<form method="POST" action="{{ url_for('admin.manage_slot_participants', slot_id=contest_slot.id) }}">
+    <div class="modal-header">
+        <div>
+            <h5 class="modal-title mb-1">Участники: {{ contest_slot.nomination_template.name }}</h5>
+            <small class="text-muted">
+                {{ CATEGORY_MAP.get(contest_slot.category, contest_slot.category) }} | {{ CATEGORY_MAP.get(contest_slot.nomination_template.participant_type, contest_slot.nomination_template.participant_type) }}
+            </small>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+    </div>
+    <div class="modal-body">
+        <!-- Флеш-сообщения, если они есть -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="row">
+            <!-- Левая колонка: список зарегистрированных -->
+            <div class="col-md-7">
+                <h6>Зарегистрированные заявки ({{ contest_slot.participants|length }})</h6>
+                {% if contest_slot.participants %}
+                    <div class="list-group" style="max-height: 300px; overflow-y: auto;">
+                        {% for p in contest_slot.participants | sort(attribute='user.code') | sort(attribute='entry_number') %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center list-group-item-action py-2">
+                                <span>
+                                    <strong>{{ p.user.nickname or p.user.code }}{% if p.entry_number > 1 %}/{{ p.entry_number }}{% endif %}</strong>
+                                    <small class="text-muted">({{ CATEGORY_MAP.get(p.user.experience_category, p.user.experience_category) }})</small>
+                                </span>
+                                <!-- Форма удаления заявки. Пока оставим ее стандартной, чтобы не усложнять. -->
+                                <button type="button" class="btn btn-xs btn-outline-danger border-0"
+                                        title="Удалить заявку"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#delete-confirm-modal"
+                                        data-item-name="Заявка #{{p.entry_number}} от {{ p.user.nickname or p.user.code }}"
+                                        data-delete-url="{{ url_for('admin.delete_participation', participation_id=p.id) }}">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted mt-3">В этом конкурсе пока нет ни одной заявки.</p>
+                {% endif %}
+            </div>
+
+            <!-- Правая колонка: форма добавления -->
+            <div class="col-md-5">
+                <div class="p-3 bg-light rounded h-100">
+                    <h6>Добавить заявку</h6>
+                    <div class="mb-3">
+                        <label for="modal_user_id" class="form-label small">Выберите участника:</label>
+                        <select id="modal_user_id" name="user_id" class="form-select form-select-sm" required>
+                            <option value="" disabled selected>-- Доступные участники --</option>
+                            {% for user in available_participants %}
+                                <option value="{{ user.id }}">{{ user.nickname or user.code }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-sm w-100">Добавить участника</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+    </div>
+</form>

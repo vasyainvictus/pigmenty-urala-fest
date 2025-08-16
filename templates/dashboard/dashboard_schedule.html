@@ -1,0 +1,70 @@
+<h4 class="mb-3">Общее расписание</h4>
+{% if not schedule_items %}
+    <p class="text-muted text-center p-4">Расписание еще не составлено.</p>
+{% else %}
+    {# Группируем все слоты по датам #}
+    {% for day_group in schedule_items | groupby('day.date') %}
+        {% set date = day_group.grouper %}
+        {% set day_slots = day_group.list %}
+        
+        {# Заголовок для каждого дня #}
+        <div class="d-flex align-items-center mt-4 mb-3">
+            <i class="bi bi-calendar3 me-2 fs-5 text-primary"></i>
+            <h5 class="mb-0">{{ date.strftime('%A, %d %B') | capitalize }}</h5>
+        </div>
+
+        {# --- НАЧАЛО ВРЕМЕННОЙ ШКАЛЫ (TIMELINE) --- #}
+        {% for time_group in day_slots | groupby('start_time') %}
+            {% set time = time_group.grouper %}
+            {% set slots_in_time = time_group.list %}
+            
+            {# Это один "блок" времени на шкале #}
+            <div class="d-flex timeline-item mb-3">
+                
+                {# Левая часть: Время #}
+                <div class="flex-shrink-0 text-end pe-3" style="width: 80px;">
+                    <strong class="d-block">{{ time.strftime('%H:%M') }}</strong>
+                    <small class="text-muted">{{ slots_in_time[0].end_time.strftime('%H:%M') }}</small>
+                </div>
+                
+                {# Средняя часть: Визуальный элемент шкалы (линия и точка) #}
+                <div class="flex-shrink-0 position-relative">
+                    <div class="timeline-dot bg-primary border border-3 border-light rounded-circle" style="width: 1rem; height: 1rem; margin-left: -0.5rem; margin-top: 0.25rem;"></div>
+                    <div class="timeline-line border-start" style="height: 100%;"></div>
+                </div>
+                
+                {# Правая часть: Карточки событий. Они будут располагаться параллельно. #}
+                <div class="flex-grow-1 ps-3">
+                    <div class="row g-3">
+                        {% for slot in slots_in_time %}
+                        <div class="col-12 col-md-6">
+                            {# Каждая карточка - это один слот #}
+                            <div class="card card-body h-100 shadow-sm {% if slot.id in highlight_slot_ids %}border-primary bg-primary-subtle{% endif %}">
+                                <div class="d-flex align-items-start">
+                                    <i class="bi 
+                                        {% if slot.type == 'judging' %}bi-clipboard-check-fill text-info
+                                        {% elif slot.type == 'award' %}bi-award-fill text-warning
+                                        {% else %}bi-calendar-event-fill text-success
+                                        {% endif %} me-2 fs-5"></i>
+                                    <div>
+                                        {% if slot.type == 'judging' %}
+                                            <strong>{{ slot.nomination_template.name }}</strong>
+                                            <small class="d-block text-muted">{{ CATEGORY_MAP.get(slot.category, '') }} | Зона: {{ slot.zone or '-' }}</small>
+                                        {% elif slot.type == 'award' %}
+                                            <strong>Награждение</strong>
+                                            <small class="d-block text-muted">{{ CATEGORY_MAP.get(slot.category, '') }} | Зона: {{ slot.zone or '-' }}</small>
+                                        {% else %}
+                                            <strong>{{ slot.event_title }}</strong>
+                                            <small class="d-block text-muted">Событие</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% endfor %}
+{% endif %}

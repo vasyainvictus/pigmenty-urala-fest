@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Редактирование фестиваля: {{ festival.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5 mb-4">
+    <div class="card shadow-sm p-4">
+        {# Просто включаем наш частичный шаблон с формой #}
+        {% include 'admin/_edit_festival_form.html' %}
+    </div>
+</div>
+{% endblock %}

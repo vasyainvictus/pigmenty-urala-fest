@@ -1,0 +1,55 @@
+<!-- Этот файл содержит ТОЛЬКО форму -->
+<!-- Мы добавили id="modalEditForm", чтобы наш JS мог ее найти -->
+<form method="POST" action="{{ url_for('admin.edit_user', user_id=user.id) }}" id="modalEditForm">
+    <div class="modal-header">
+        <h5 class="modal-title">Изменение пользователя: {{ user.nickname }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+    </div>
+    <div class="modal-body">
+        <!-- Флеш-сообщения, если они есть (например, при ошибке валидации) -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="mb-3">
+            <label for="code" class="form-label">Уникальный код (нельзя изменить):</label>
+            <input type="text" id="code" name="code" required value="{{ user.code }}" readonly class="form-control-plaintext">
+        </div>
+        <div class="mb-3">
+            <label for="nickname" class="form-label">Никнейм (необязательно):</label>
+            <input type="text" id="nickname" name="nickname" value="{{ user.nickname or '' }}" class="form-control">
+        </div>
+        <div class="mb-3">
+            <label for="telegram_id" class="form-label">Telegram ID (необязательно):</label>
+            <input type="text" id="telegram_id" name="telegram_id" value="{{ user.telegram_id or '' }}" class="form-control">
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label for="role" class="form-label">Роль:</label>
+                <select id="role" name="role" required class="form-select">
+                    <option value="participant" {% if user.role == 'participant' %}selected{% endif %}>Участник</option>
+                    <option value="judge" {% if user.role == 'judge' %}selected{% endif %}>Судья</option>
+                    <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Администратор</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label for="experience_category" class="form-label">Категория опыта:</label>
+                <select id="experience_category" name="experience_category" class="form-select">
+                    <option value="" {% if not user.experience_category %}selected{% endif %}>-</option>
+                    <option value="junior" {% if user.experience_category == 'junior' %}selected{% endif %}>Юниор</option>
+                    <option value="pro" {% if user.experience_category == 'pro' %}selected{% endif %}>Про</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="submit" class="btn btn-success">Сохранить</button>
+    </div>
+</form>

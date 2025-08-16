@@ -1,0 +1,39 @@
+{# Этот файл содержит ТОЛЬКО форму редактирования фестиваля #}
+<form method="POST" action="{{ url_for('admin.edit_festival', festival_id=festival.id) }}" id="editFestivalForm">
+    <div class="modal-header">
+        <h5 class="modal-title">Редактирование: {{ festival.name }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+    </div>
+    <div class="modal-body">
+        {# Flash messages здесь тоже могут отображаться, если сервер их вернет #}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрыть"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="row gy-3">
+            <div class="col-md-12">
+                <label for="name" class="form-label">Название фестиваля:</label>
+                <input type="text" id="name" name="name" class="form-control" value="{{ festival.name }}" required>
+            </div>
+            <div class="col-md-6">
+                <label for="start_date" class="form-label">Дата начала:</label>
+                <input type="date" id="start_date" name="start_date" class="form-control" value="{{ festival.start_date.isoformat() }}" required>
+            </div>
+            <div class="col-md-6">
+                <label for="end_date" class="form-label">Дата окончания:</label>
+                <input type="date" id="end_date" name="end_date" class="form-control" value="{{ festival.end_date.isoformat() }}" required>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+    </div>
+</form>

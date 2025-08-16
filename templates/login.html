@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход в личный кабинет</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500&display=swap" rel="stylesheet">
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --brand-green: #1a5a3a;
+            --error-red: #e74c3c;
+            --card-bg: rgba(45, 45, 45, 0.85);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --text-color: #fff;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0d1f13, #1a3a24, #0d1f13);
+            color: var(--text-color); min-height: 100vh; display: flex;
+            align-items: center; justify-content: center; padding: 20px;
+            font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            overflow-x: hidden; position: relative;
+        }
+        
+        .flashes-container {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 1000; width: 90%; max-width: 500px;
+        }
+        .alert-custom {
+            background-color: rgba(45, 45, 45, 0.9); border: 1px solid var(--border-color);
+            border-left: 4px solid var(--brand-green); color: #ddd; padding: 1rem;
+            border-radius: 10px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(5px);
+        }
+
+        .alert-custom.error,
+        .alert-custom.danger {
+            border-left-color: var(--error-red);
+        }
+
+        .login-card {
+            background: var(--card-bg); backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color); border-radius: 16px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6); padding: 2.5rem;
+            width: 100%; max-width: 450px; position: relative;
+            overflow: hidden; z-index: 10; min-height: 520px; 
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+
+        .login-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0;
+            height: 4px; background: linear-gradient(90deg, var(--brand-green), #2ecc71);
+        }
+        .login-card::after {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: url('/static/images/david_bg.jpg') center/cover no-repeat;
+            opacity: 0.3; z-index: -1; border-radius: 16px;
+        }
+
+        .brand-header { text-align: center; position: relative; }
+        
+        .brand-header h1 {
+            font-family: 'Oswald', sans-serif; font-size: 2.4rem;
+            text-transform: uppercase; letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(46, 204, 113, 0.4);
+        }
+        
+        .login-form-container { width: 100%; position: relative; }
+        .form-label {
+            display: block; text-align: center; font-size: 1.1rem;
+            color: #ddd; margin-bottom: 1.5rem; 
+        }
+
+        .otp-inputs {
+            display: flex; justify-content: center; gap: 10px;
+            transition: opacity 0.3s ease;
+        }
+        .otp-inputs.loading { opacity: 0.5; pointer-events: none; }
+        
+        .otp-input {
+            width: 60px; 
+            height: 65px; font-size: 1.7rem; font-weight: bold;
+            text-align: center; background: rgba(20, 20, 20, 0.6) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 10px;
+            color: #e0e0e0 !important;
+            transition: all 0.3s ease; box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        .otp-input:-webkit-autofill,
+        .otp-input:-webkit-autofill:hover, 
+        .otp-input:-webkit-autofill:focus, 
+        .otp-input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 30px #141414 inset !important;
+            -webkit-text-fill-color: #e0e0e0 !important;
+        }
+        
+        .otp-input:focus {
+            border-color: rgba(46, 204, 113, 0.8);
+            box-shadow: 0 0 15px rgba(46, 204, 113, 0.5);
+            outline: none; transform: scale(1.05);
+        }
+
+        @media (max-width: 576px) {
+            .login-card { min-height: 500px; padding: 2rem 1.8rem; }
+            .otp-inputs { gap: 8px; }
+            .otp-input { width: 50px; height: 55px; font-size: 1.5rem; }
+            .brand-header h1 { font-size: 2rem; }
+        }
+        
+        @media (max-widh: 420px) {
+             .otp-input {
+                padding:0;
+             }
+        }
+        
+        /* --- ИЗМЕНЕНИЕ --- Финальное, гарантированное исправление */
+        @media (max-width: 400px) {
+            .login-card { min-height: 480px; padding: 1.5rem 1rem; }
+            .otp-inputs { gap: 5px; } /* Чуть уменьшаем отступ */
+            .otp-input { 
+                /* Используем calc() для автоматического расчета ширины */
+                width: calc((100% - 25px) / 6); /* 25px = 5 отступов * 5px */
+                padding: 0; /* Убираем внутренние отступы, чтобы текст был по центру */
+                height: 50px; 
+                font-size: 1.4rem; 
+            }
+            .alert-custom { font-size: 0.9rem; padding: 0.75rem 1rem; }
+            .brand-header h1 { font-size: 1.8rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="flashes-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-custom alert-dismissible fade show mb-3" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <div class="login-card">
+        <div class="brand-header">
+            <h1 class="text-center">Вход в личный кабинет</h1>
+        </div>
+        <div class="login-form-container">
+            <form method="POST" action="{{ url_for('auth.login') }}" id="loginForm" novalidate>
+                <label class="form-label">Введите ваш 6-значный код:</label>
+                <div class="otp-inputs" id="otp-inputs">
+                    {% for i in range(6) %}
+                    <input type="text" 
+                           class="form-control otp-input" 
+                           maxlength="1" 
+                           autocomplete="off" autocorrect="off"
+                           autocapitalize="characters" inputmode="text">
+                    {% endfor %}
+                </div>
+                <input type="hidden" name="code" id="code">
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('loginForm');
+            const inputs = Array.from(document.querySelectorAll('.otp-input'));
+            const hiddenCodeInput = document.getElementById('code');
+            const otpContainer = document.getElementById('otp-inputs');
+
+            const flashMessages = document.querySelectorAll('.flashes-container .alert-custom');
+            const errorKeywords = ['неверный', 'ошибка', 'неправильный', 'истек'];
+            let isErrorFound = false;
+
+            flashMessages.forEach(flash => {
+                const messageText = flash.textContent.toLowerCase();
+                if (errorKeywords.some(keyword => messageText.includes(keyword))) {
+                    flash.classList.add('error');
+                    isErrorFound = true;
+                }
+            });
+
+            if (isErrorFound) {
+                inputs.forEach(input => input.value = '');
+            }
+
+            const trySubmit = () => {
+                const otpCode = inputs.map(input => input.value).join('');
+                if (otpCode.length === 6) {
+                    hiddenCodeInput.value = otpCode;
+                    otpContainer.classList.add('loading');
+                    form.submit();
+                }
+            };
+
+            if (inputs.length > 0) {
+                inputs[0].focus();
+                inputs.forEach((input, index) => {
+                    input.addEventListener('focus', () => input.select());
+                    input.addEventListener('input', () => {
+                        const value = input.value.toUpperCase();
+                        input.value = value;
+                        if (value && index < inputs.length - 1) {
+                            inputs[index + 1].focus();
+                        } else if (value && index === inputs.length - 1) {
+                            trySubmit();
+                        }
+                    });
+                    input.addEventListener('keydown', (e) => {
+                        if (e.key === 'Backspace' && input.value === '' && index > 0) {
+                           e.preventDefault();
+                           inputs[index - 1].focus();
+                           inputs[index - 1].value = '';
+                        } else if (e.key === 'ArrowLeft' && index > 0) {
+                            e.preventDefault();
+                            inputs[index - 1].focus();
+                        } else if (e.key === 'ArrowRight' && index < inputs.length - 1) {
+                            e.preventDefault();
+                            inputs[index + 1].focus();
+                        }
+                    });
+                    input.addEventListener('paste', (e) => {
+                        e.preventDefault();
+                        const pasteData = e.clipboardData.getData('text').toUpperCase().trim();
+                        if (!/^[0-9A-Z]+$/.test(pasteData)) return;
+                        let current_index = index;
+                        for (let i = 0; i < pasteData.length; i++) {
+                            if (current_index < inputs.length) {
+                                inputs[current_index].value = pasteData[i];
+                                current_index++;
+                            }
+                        }
+                        trySubmit();
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>

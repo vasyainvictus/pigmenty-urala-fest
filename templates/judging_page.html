@@ -1,0 +1,349 @@
+{% extends "base_mobile.html" %}
+{% block title %}Судейство: {{ contest.nomination_template.name }}{% endblock %}
+
+{% block fab_buttons %}{% endblock %}
+
+{% block styles %}
+<style>
+    /* Все ваши стили остаются без изменений */
+    .participant-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 0.5rem;
+    }
+    .participant-btn {
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
+        color: var(--text-color) !important;
+        padding: 0.5rem;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    .participant-btn:hover {
+        background-color: #333;
+    }
+    .participant-btn.active, .participant-btn.active:focus, .participant-btn.active:hover {
+        background-color: var(--card-bg) !important;
+        border-color: var(--brand-green) !important;
+        color: var(--brand-green) !important;
+        font-weight: 700;
+        transform: scale(1.05);
+        box-shadow: 0 0 0 3px rgba(26, 90, 58, 0.3) !important;
+        outline: none !important;
+    }
+    .participant-btn:focus {
+        box-shadow: none;
+        outline: none;
+    }
+    .participant-btn.scored {
+        opacity: 0.6;
+    }
+    .participant-btn.scored.viewing {
+        opacity: 1;
+        background-color: #333 !important;
+    }
+    .judging-form .noUi-target {
+        background: #444 !important;
+        border-radius: 4px !important;
+        border: none !important;
+        box-shadow: none !important;
+        height: 4px !important;
+    }
+    .judging-form .noUi-connect {
+        background: var(--brand-green) !important;
+    }
+    .judging-form .noUi-handle {
+        width: 16px !important;
+        height: 16px !important;
+        border-radius: 50% !important;
+        top: -6px !important;
+        right: -8px !important;
+        background: #fff !important;
+        border: none !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
+        cursor: pointer !important;
+    }
+    .judging-form .noUi-handle::before,
+    .judging-form .noUi-handle::after {
+        display: none !important;
+    }
+    .judging-form .noUi-target[disabled] {
+        background: #333 !important;
+    }
+    .judging-form .noUi-target[disabled] .noUi-connect {
+        background: #555 !important;
+    }
+    .judging-form .noUi-target[disabled] .noUi-handle {
+        box-shadow: none !important;
+        cursor: not-allowed !important;
+    }
+    .alert-custom-notice {
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-left: 4px solid var(--brand-green);
+        color: #ddd;
+        padding: 1.5rem;
+        border-radius: 8px;
+        text-align: center;
+        margin-top: 2rem;
+    }
+    .alert-custom-notice h4 {
+        color: #fff;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+    }
+    .slider-value {
+        font-family: 'Russo One', sans-serif;
+        font-size: 1.2rem;
+        color: var(--brand-green);
+        transition: transform 0.2s ease;
+    }
+    .slider-value.changed {
+        transform: scale(1.2);
+        color: #fff;
+        text-shadow: 0 0 5px rgba(26, 90, 58, 0.5);
+    }
+    .btn-primary {
+        background-color: var(--brand-green);
+        border-color: var(--brand-green);
+        transition: all 0.3s ease;
+    }
+    .btn-primary:hover, .btn-primary:focus {
+        background-color: #13402a;
+        border-color: #13402a;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .btn-primary:active {
+        transform: translateY(0);
+        box-shadow: none;
+    }
+    .success-modal-btn {
+        background-color: var(--brand-green);
+        border-color: var(--brand-green);
+        padding: 0.5rem 1.5rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    .success-modal-btn:hover {
+        background-color: #13402a;
+        border-color: #13402a;
+        transform: scale(1.05);
+    }
+    .judging-form {
+        transition: opacity 0.3s ease, transform 0.3s ease;
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    .judging-form.hidden {
+        animation: fadeOut 0.5s forwards;
+    }
+    @keyframes fadeOut {
+        from { opacity: 1; transform: scale(1); }
+        to { opacity: 0; transform: scale(0.9); }
+    }
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+    .pulse { animation: pulse 0.3s ease; }
+</style>
+{% endblock %}
+
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-start mb-4 welcome-block">
+        <div>
+            <h1 class="display-5">Судейство</h1>
+            <p class="text-white-50">Конкурс: «{{ contest.nomination_template.name }}»</p>
+        </div>
+        <a href="{{ url_for('main.my_judging') }}" class="btn btn-dark btn-sm ms-3" title="Назад к списку">
+            <i class="bi bi-arrow-left fs-5"></i>
+        </a>
+    </div>
+
+    {% if not is_judging_allowed %}
+        <div class="alert-custom-notice">
+            <h4>Судейство еще не началось</h4>
+            <p class="mb-0">Вы сможете выставлять оценки начиная с <strong>{{ contest.start_time.strftime('%H:%M') }}</strong>.</p>
+        </div>
+    {% elif not participations %}
+        <div class="text-center p-4 rounded" style="background-color: var(--card-bg);">
+            <p class="mb-0 text-white-50">Нет участников для оценки.</p>
+        </div>
+    {% else %}
+        <h5 class="mb-3">Выберите участника для оценки:</h5>
+        <div class="participant-grid mb-4">
+        {% for p in participations %}
+            <button class="btn participant-btn {% if p.id in fully_scored_participation_ids %}scored{% endif %}"
+                    data-participant-id="{{ p.id }}">
+                {{ p.user.nickname or p.user.code }}{% if p.entry_number > 1 %}/{{p.entry_number}}{% endif %}
+            </button>
+        {% endfor %}
+        </div>
+
+        {% for p in participations %}
+        <div class="judging-form" id="form-{{ p.id }}" style="display: none; opacity: 0; transform: translateY(10px);">
+            <div class="p-3 mb-3 rounded" style="background-color: var(--card-bg); border: 1px solid var(--border-color);">
+                <form method="POST" action="{{ url_for('main.judging_page', contest_id=contest.id) }}">
+                    <input type="hidden" name="participation_id" value="{{ p.id }}">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">Оценка для: {{ p.user.nickname or p.user.code }}</h6>
+                    </div>
+                    {% for c in criteria %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label small mb-0">{{ c.name }}</label>
+                            <span class="slider-value">0</span>
+                        </div>
+                        <div class="score-slider"
+                             data-min="0"
+                             data-max="{{ c.max_score }}"
+                             data-start="{{ scores_map.get((p.id, c.id), 0) }}"
+                             data-is-scored="{{ 'true' if p.id in fully_scored_participation_ids else 'false' }}">
+                        </div>
+                        <input type="hidden" name="scores[{{ p.id }}][{{ c.id }}]" value="{{ scores_map.get((p.id, c.id), 0) }}">
+                    </div>
+                    {% endfor %}
+                    {% if p.id not in fully_scored_participation_ids %}
+                    <div class="text-center mt-3 submit-container">
+                        <button type="submit" class="btn btn-primary px-5 py-2 fw-bold">
+                            <i class="bi bi-check-circle me-1"></i> Сохранить оценки
+                        </button>
+                    </div>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const participantButtons = document.querySelectorAll('.participant-btn');
+    const judgingForms = document.querySelectorAll('.judging-form');
+    const isJudgingAllowed = {{ is_judging_allowed | tojson }};
+
+    // Инициализация ползунков (без изменений)
+    if (typeof noUiSlider !== 'undefined') {
+        document.querySelectorAll('.score-slider').forEach(sliderElement => {
+            const isScored = sliderElement.dataset.isScored === 'true';
+            const sliderValueSpan = sliderElement.previousElementSibling.querySelector('.slider-value');
+            const slider = noUiSlider.create(sliderElement, {
+                start: [sliderElement.dataset.start], connect: [true, false], step: 1,
+                range: { 'min': [parseInt(sliderElement.dataset.min)], 'max': [parseInt(sliderElement.dataset.max)] },
+                tooltips: false, format: { to: value => Math.round(value), from: value => Math.round(value) }
+            });
+            if (isScored) { sliderElement.setAttribute('disabled', true); }
+            const hiddenInput = sliderElement.nextElementSibling;
+            slider.on('update', (values, handle) => {
+                const value = values[handle]; hiddenInput.value = value;
+                if(sliderValueSpan) {
+                    sliderValueSpan.textContent = value; sliderValueSpan.classList.add('changed');
+                    setTimeout(() => { sliderValueSpan.classList.remove('changed'); }, 300);
+                }
+            });
+            if(sliderValueSpan) sliderValueSpan.textContent = slider.get();
+        });
+    }
+
+    // Обработка выбора участника (исправленная версия)
+    participantButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const targetId = button.dataset.participantId;
+            const targetForm = document.getElementById('form-' + targetId);
+            const wasAlreadyOpen = targetForm.style.display === 'block';
+            judgingForms.forEach(form => {
+                form.style.display = 'none'; form.style.opacity = '0'; form.style.transform = 'translateY(10px)';
+            });
+            participantButtons.forEach(btn => {
+                btn.classList.remove('active'); btn.classList.remove('viewing');
+            });
+            if (!wasAlreadyOpen && targetForm) {
+                targetForm.style.display = 'block';
+                setTimeout(() => {
+                    targetForm.style.opacity = '1'; targetForm.style.transform = 'translateY(0)';
+                }, 10);
+                if (button.classList.contains('scored')) {
+                    button.classList.add('viewing');
+                } else {
+                    button.classList.add('active');
+                }
+                button.classList.add('pulse');
+                setTimeout(() => button.classList.remove('pulse'), 300);
+            }
+        });
+    });
+
+    // Обработка отправки формы (ВАШ ОРИГИНАЛЬНЫЙ КОД + ИЗМЕНЕНИЯ)
+    document.querySelectorAll('.judging-form form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (!isJudgingAllowed) { alert('Судейство для этого конкурса еще не началось!'); return; }
+            const formData = new FormData(this);
+            const action = this.action;
+            const participantId = this.querySelector('input[name="participation_id"]').value;
+            const submitButton = this.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+
+            fetch(action, {
+                method: 'POST', body: formData,
+                headers: {'X-Requested-With': 'XMLHttpRequest'}
+            })
+            .then(response => {
+                if (response.ok) { return response.text(); }
+                return Promise.reject('Ошибка сети');
+            })
+            .then(() => {
+                const formContainer = document.getElementById('form-' + participantId);
+                const button = document.querySelector(`.participant-btn[data-participant-id="${participantId}"]`);
+                
+                // --- ИЗМЕНЕНИЕ 1: Динамически удаляем кнопку "Сохранить" ---
+                const submitContainer = formContainer.querySelector('.submit-container');
+                if (submitContainer) {
+                    submitContainer.remove();
+                }
+
+                // --- ИЗМЕНЕНИЕ 2: Блокируем ползунки ---
+                formContainer.querySelectorAll('.score-slider').forEach(sliderEl => {
+                    if (sliderEl.noUiSlider) {
+                        sliderEl.noUiSlider.disable();
+                    }
+                });
+                
+                // --- ИЗМЕНЕНИЕ 3: УДАЛЕНА строка, которая скрывала форму ---
+                // formContainer.classList.add('hidden'); // ЭТО БЫЛА ОШИБКА
+
+                // Обновляем кнопку участника
+                if(button) {
+                    button.classList.add('scored');
+                    button.classList.remove('active');
+                    // Переключаем в режим просмотра
+                    button.classList.add('viewing'); 
+                }
+                
+                // Проверяем, все ли оценены, и показываем модальное окно (без изменений)
+                if (document.querySelectorAll('.participant-btn:not(.scored)').length === 0) {
+                    const modalHtml = `
+                    <div class="modal fade" id="successModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content" style="background-color: var(--card-bg); border-color: var(--border-color);"><div class="modal-body text-center p-4"><h4 class="mb-3">Отличная работа!</h4><p>Все участники оценены.</p><button type="button" class="btn success-modal-btn mt-3" data-bs-dismiss="modal"><i class="bi bi-check-lg me-1"></i> Закрыть</button></div></div></div></div>`;
+                    document.body.insertAdjacentHTML('beforeend', modalHtml);
+                    const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+                    successModal.show();
+                    document.getElementById('successModal').addEventListener('hidden.bs.modal', function () {
+                        window.location.href = "{{ url_for('main.my_judging') }}";
+                    });
+                }
+            })
+            .catch(error => {
+                alert('Произошла ошибка: ' + error);
+                submitButton.disabled = false;
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

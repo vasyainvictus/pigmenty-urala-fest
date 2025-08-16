@@ -1,0 +1,90 @@
+{% extends "base_mobile.html" %}
+{% block title %}Расписание{% endblock %}
+
+{# --- ИЗМЕНЕНИЕ 1: Добавлен блок стилей специально для кнопок на этой странице --- #}
+{% block styles %}
+<style>
+    /* Нацеливаемся на кнопки (.btn) внутри блока приветствия (.welcome-block) */
+    .welcome-block .btn {
+        height: 48px; /* Задаем нужную высоту */
+        width: 48px;  /* Делаем кнопку квадратной для иконки на мобильных */
+        
+        /* Центрируем иконку внутри кнопки */
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        
+        font-size: 1.25rem; /* Немного увеличиваем размер самой иконки */
+        padding: 0; /* Убираем стандартные отступы, чтобы иконка была по центру */
+    }
+
+    /* Для экранов 768px и шире (где появляется текст "Мои Оценки") */
+    @media (min-width: 768px) {
+        .welcome-block .btn {
+            width: auto; /* Позволяем кнопке растягиваться под размер текста */
+            padding: 0 1.25rem; /* Возвращаем боковые отступы для текста */
+            font-size: 1rem; /* Возвращаем стандартный размер иконки и текста */
+        }
+    }
+</style>
+{% endblock %}
+
+
+{% block content %}
+    {# --- ИСПРАВЛЕНИЕ: Меняем align-items-center на align-items-start --- #}
+    <div class="d-flex justify-content-between align-items-start mb-4 welcome-block">
+        {# Текст приветствия #}
+        <div>
+            <h1 class="display-5 fw-bold mb-1">Добро пожаловать, {{ current_user.nickname or current_user.code }}!</h1>
+            <p class="text-white-50 mb-0">Здесь вы можете отслеживать полное расписание фестиваля и оценки за свои работы.</p>
+        </div>
+        
+        {# Группа кнопок справа от текста #}
+        <div class="d-flex flex-column flex-sm-row gap-2 ms-3">
+            {# --- ИЗМЕНЕНИЕ 2: Убран класс `btn-sm` --- #}
+            <a href="{{ url_for('main.my_scores') }}" class="btn btn-warning" title="Мои Оценки">
+                <i class="bi bi-star-fill"></i>
+                <span class="d-none d-md-inline ms-1">Мои Оценки</span>
+            </a>
+            {# --- ИЗМЕНЕНИЕ 3: Убран класс `btn-sm` --- #}
+            <a href="{{ url_for('auth.logout') }}" class="btn btn-dark" title="Выход">
+                <i class="bi bi-box-arrow-right"></i>
+                <span class="d-none d-md-inline ms-1">Выход</span>
+            </a>
+        </div>
+    </div>
+
+    <h3 class="mb-3 mt-4">Расписание</h3>
+    
+    {% if not schedule_items %}
+        <div class="text-center p-4 bg-light rounded text-dark"><p class="mb-0">Расписание еще не составлено.</p></div>
+    {% else %}
+        <ul class="nav nav-pills gap-2 mb-4 schedule-dates" id="schedule-tabs" role="tablist">
+            {% for day_group in schedule_items | groupby('day.date') %}
+            <li class="nav-item" role="presentation"><button class="nav-link {% if loop.first %}active{% endif %}" data-bs-toggle="tab" data-bs-target="#day-pane-{{ day_group.grouper.strftime('%Y%m%d') }}"><span class="fw-bold fs-5">{{ day_group.grouper.strftime('%d.%m') }}</span></button></li>
+            {% endfor %}
+        </ul>
+        
+        <div class="tab-content" id="schedule-tabs-content">
+            {% for day_group in schedule_items | groupby('day.date') %}
+                <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="day-pane-{{ day_group.grouper.strftime('%Y%m%d') }}">
+                    <div class="table-responsive">
+                        <table class="table schedule-table">
+                            <tbody>
+                            {% for slot in day_group.list %}
+                                <tr class="{% if slot.id in highlight_slot_ids %}table-success{% endif %}" data-aos="fade-up" data-aos-delay="{{ loop.index0 * 50 }}">
+                                    <td class="text-muted" style="width: 100px;">{{ slot.start_time.strftime('%H:%M') }} - {{ slot.end_time.strftime('%H:%M') }}</td>
+                                    <td>
+                                        <strong>{{ slot.nomination_template.name if slot.type == 'judging' else (slot.event_title or 'Награждение') }}</strong>
+                                        <div class="small text-muted">{{ CATEGORY_MAP.get(slot.category, '') }} | Зона: {{ slot.zone or '-' }}</div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endblock %}

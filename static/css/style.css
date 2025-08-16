@@ -1,0 +1,56 @@
+/*
+ *  Наш новый, чистый файл стилей.
+ *  Мы максимально используем возможности Bootstrap и добавляем только
+ *  небольшие кастомные исправления и улучшения.
+ */
+
+
+/* --- ГЛОБАЛЬНЫЕ СТИЛИ --- */
+body {
+    /* Задаем базовый шрифт для всего приложения. */
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+
+/* --- ИСПРАВЛЕНИЯ КОМПОНЕНТОВ BOOTSTRAP --- */
+
+/* 1. Убираем "тряску" аккордеона и кнопок при наведении/фокусе */
+.accordion-button:focus,
+.btn:focus {
+    box-shadow: none !important; /* !important нужен, чтобы перебить стили Bootstrap */
+    outline: 0;
+}
+
+/* 2. Исправление для адаптивных выпадающих списков, чтобы текст переносился */
+.form-select option {
+    white-space: normal;
+    word-wrap: break-word;
+}
+
+
+/* --- КАСТОМНЫЕ КОМПОНЕНТЫ --- */
+
+/* 3. Стили для временной шкалы (Timeline) в дашбордах */
+.timeline-item .timeline-line {
+    position: absolute;
+    left: 50%;
+    top: 1rem;
+    bottom: -1rem;
+    transform: translateX(-50%);
+    z-index: -1;
+}
+.timeline-item:last-child .timeline-line {
+    display: none;
+}
+
+/* 4. Анимация и стили для карточки победителя */
+.winner-card {
+    border-radius: 0.375rem;
+    padding: 1rem;
+    background: linear-gradient(45deg, rgba(255, 215, 0, 0.1), rgba(255, 235, 153, 0.2));
+    animation: glow 2s ease-in-out infinite alternate;
+}
+@keyframes glow {
+    from { box-shadow: 0 0 5px rgba(255, 215, 0, 0.2); }
+    to { box-shadow: 0 0 20px rgba(255, 215, 0, 0.6); }
+}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Панель администратора{% endblock %}
+
+{% block content %}
+    {# --- ИЗМЕНЕНИЕ: Все лишние контейнеры и карточные обертки убраны --- #}
+    {# Вся структура страницы теперь задается в базовом шаблоне base.html для единообразия #}
+    
+    <h2 class="mb-1">Панель Администратора</h2>
+    <p class="text-muted mb-3">Добро пожаловать, <strong>{{ current_user.nickname or current_user.code }}</strong>!</p>
+    <hr>
+
+    {# Включаем наш шаблон с временной шкалой расписания #}
+    {% include "dashboard/_schedule_timeline.html" %}
+
+{% endblock %}

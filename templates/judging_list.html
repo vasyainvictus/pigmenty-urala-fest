@@ -1,0 +1,62 @@
+{% extends "base_mobile.html" %}
+{% block title %}Мои судейства{% endblock %}
+
+{% block fab_buttons %}{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-start mb-4 welcome-block">
+        <div>
+            <h1 class="display-5">Ваши конкурсы</h1>
+            <p class="text-white-50">Здесь находятся все конкурсы, назначенные вам для оценки.</p>
+        </div>
+        <a href="{{ url_for('main.dashboard') }}" class="btn btn-dark btn-sm ms-3" title="Назад на дашборд">
+            <i class="bi bi-arrow-left fs-5"></i>
+        </a>
+    </div>
+
+    <div class="mt-5">
+        <h3 class="mb-3">Требуется судейство</h3>
+        {% if not pending_contests %}
+            <div class="text-center p-4 rounded" style="background-color: var(--card-bg);">
+              <p class="mb-0 text-white-50">Все назначенные конкурсы отсужены. Отличная работа!</p>
+            </div>
+        {% else %}
+            <div class="list-group list-group-flush">
+              {% for contest in pending_contests %}
+              <a href="{{ url_for('main.judging_page', contest_id=contest.id) }}" class="list-group-item list-group-item-action bg-transparent p-3" style="border-left: 4px solid var(--brand-green) !important;">
+                <div class="d-flex w-100 justify-content-between align-items-center">
+                  <div class="me-3">
+                    <div class="fw-bold">{{ contest.nomination_template.name }}</div>
+                    <small class="text-muted">{{ contest.day.date.strftime('%d.%m.%Y') }} | {{ CATEGORY_MAP.get(contest.category, '') }}</small>
+                  </div>
+                  <span class="badge text-bg-light border" title="Количество участников">
+                    <i class="bi bi-people-fill me-1"></i>{{ contest.participants|length }}
+                  </span>
+                </div>
+              </a>
+              {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="mt-4">
+      <h3 class="mb-3">Отсуженные конкурсы</h3>
+      {% if not judged_contests %}
+        <p class="text-muted">Вы еще не отсудили ни одного конкурса.</p>
+      {% else %}
+        <div class="list-group list-group-flush">
+          {% for contest in judged_contests %}
+          {# --- НАЧАЛО ИСПРАВЛЕНИЯ: Убираем класс text-muted с этой ссылки --- #}
+          <a href="{{ url_for('main.judging_page', contest_id=contest.id) }}" class="list-group-item list-group-item-action bg-transparent p-3">
+            <div class="d-flex w-100 justify-content-between text-muted">
+              <div class="fw-bold">{{ contest.nomination_template.name }}</div>
+              <i class="bi bi-check-circle-fill text-success"></i>
+            </div>
+            <small class="text-muted">{{ contest.day.date.strftime('%d.%m.%Y') }} | {{ CATEGORY_MAP.get(contest.category, '') }}</small>
+          </a>
+          {# --- КОНЕЦ ИСПРАВЛЕНИЯ --- #}
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+{% endblock %}
